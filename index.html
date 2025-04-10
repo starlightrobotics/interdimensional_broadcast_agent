@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Interdimensional Radio</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      background-color: black;
+      font-family: monospace;
+      color: #00ff00;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+    }
+
+    .content {
+      display: flex;
+      flex-direction: row;
+      justify-content: center;
+      align-items: flex-start;
+      width: 100%;
+      padding: 2rem;
+      box-sizing: border-box;
+    }
+
+    #sidebar {
+      flex: 1;
+      max-width: 400px;
+      padding: 1rem;
+      font-size: 1rem;
+      border-right: 2px dashed #00ff00;
+    }
+
+    #tv-screen {
+      flex: 2;
+      height: 70vh;
+      background-color: black;
+      border: 10px solid #333;
+      box-shadow: 0 0 30px #00ff00;
+      padding: 2rem;
+      overflow-y: auto;
+      box-sizing: border-box;
+      font-size: 1.5rem;
+      margin-left: 2rem;
+    }
+
+    .button-container {
+      margin: 2rem;
+    }
+
+    .triangle-button {
+      width: 0;
+      height: 0;
+      border-top: 40px solid transparent;
+      border-bottom: 40px solid transparent;
+      border-left: 60px solid blue;
+      cursor: pointer;
+    }
+
+    ul {
+      padding-left: 1.5rem;
+    }
+
+    #settings-icon {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 100px;
+      color: #00ff00;
+      cursor: pointer;
+      z-index: 1000;
+      transition: transform 0.2s ease;
+    }
+
+    #settings-icon:hover {
+      transform: rotate(30deg);
+    }
+
+    #settings-menu {
+  position: fixed;
+  top: 50px;
+  right: 10px;
+  background: #111;
+  border: 1px solid #00ff00;
+  padding: 1rem;
+  border-radius: 5px;
+  display: none;
+  flex-direction: column;
+  color: #00ff00;
+  font-family: monospace;
+  font-size: 0.9rem;
+  z-index: 1001;
+}
+
+#settings-menu input {
+  background: black;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  padding: 0.25rem;
+  font-family: monospace;
+  width: 250px;
+}
+
+  </style>
+</head>
+<body>
+  <div class="content">
+    <div id="sidebar">
+      <ul id="output"></ul>
+    </div>
+    <div id="tv-screen">Loading interdimensional nonsense...</div>
+  </div>
+  <div class="button-container" style="display: flex; align-items: center; gap: 1rem;">
+    <div id="toggleModeButton" style="
+      color: #00ff00;
+      font-weight: bold;
+      text-transform: uppercase;
+      font-size: 70px;
+      font-family: monospace;
+      cursor: pointer;
+    ">Radio</div>
+    <div id="nextButton" class="triangle-button"></div>
+  </div>
+
+  <audio id="tts-player" controls style="margin-top: 2rem;"></audio>
+
+  <div id="settings-icon" title="Settings">
+    &#9881;
+  </div>
+  <div id="settings-menu">
+    <label for="api-url">LLM API:</label>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <input id="api-url" type="text" value="http://127.0.0.1:5000" />
+    </div>
+  
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+
+      <label for="use-tts">Use TTS</label>
+      <input type="checkbox" id="use-tts" checked />
+    </div>
+    
+  </div>
+  
+
+  
+
+
+
+  <script>
+    let data = null;
+    let debugMode = false;
+
+document.getElementById("toggleModeButton").addEventListener("click", () => {
+  debugMode = !debugMode;
+
+  const sidebar = document.getElementById("sidebar");
+  const button = document.getElementById("toggleModeButton");
+
+  if (debugMode) {
+    sidebar.style.display = 'block';
+    button.textContent = 'Debug';
+  } else {
+    sidebar.style.display = 'none';
+    button.textContent = 'Radio';
+  }
+});
+
+    async function loadData() {
+      try {
+        const res = await fetch('data.json');
+        data = await res.json();
+        // generateDimension();
+      } catch (err) {
+        console.error("Failed to load data.json:", err);
+        document.getElementById("tv-screen").textContent = "Failed to load dimension data.";
+      }
+    }
+
+    function randomFrom(array) {
+      if (!Array.isArray(array)) {
+        console.error("randomFrom was called with a non-array:", array);
+        return "???";
+      }
+      return array[Math.floor(Math.random() * array.length)];
+    }
+
+    async function generateNewEntryFromCategory(categoryName, valuesArray, maxRetries = 3) {
+      const prompt = `We are planning an interdimensional radio station. Here are our current examples: ${valuesArray.join(', ')}. Make your own random ${categoryName.toLowerCase()}. Respond just with one line.`;
+
+      for (let attempt = 1; attempt <= maxRetries; attempt++) {
+        try {
+          const res = await fetch('http://127.0.0.1:5000/v1/chat/completions', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: "chat",
+              character: "Assistant",
+              messages: [{ role: "user", content: prompt }]
+            })
+          });
+
+          const json = await res.json();
+          const content = json.choices?.[0]?.message?.content?.trim();
+
+          if (content && content !== "[No response]") {
+            return content;
+          }
+
+          console.warn(`Attempt ${attempt}: Empty or invalid response for "${categoryName}". Retrying...`);
+
+        } catch (err) {
+          console.error(`Attempt ${attempt}: Error generating ${categoryName}:`, err);
+        }
+
+        // Optional: wait a bit before retrying (200ms delay)
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+
+      return "[No response]";
+    }
+
+
+    async function generateDimension() {
+  if (!data) return;
+
+  const outputList = document.getElementById("output");
+  const screen = document.getElementById("tv-screen");
+  outputList.innerHTML = '';
+  screen.textContent = "Tuning in to a strange dimension...";
+
+  const categories = [
+    ["Core Twist", data.coreTwists],
+    ["World State", data.worldStates],
+    ["Dominant Species", data.species],
+    ["Culture", data.culture],
+    ["Technology Level", data.techLevel],
+    ["Politics", data.politics],
+    ["Fashion", data.fashion],
+    ["Laws of Nature", data.lawsOfNature],
+    ["Snapshot", data.snapshot],
+    ["Tone", data.tone]
+  ];
+
+  const details = [];
+
+  // Sequentially fetch each entry via API and update list
+  for (const [label, array] of categories) {
+    const value = await generateNewEntryFromCategory(label, array);
+    details.push([label, value]);
+
+    const li = document.createElement('li');
+    li.textContent = `${label}: ${value}`;
+    outputList.appendChild(li);
+  }
+
+  // Create the prompt for the summary once all entries are ready
+  const prompt =
+    "Describe the following interdimensional radio broadcast as if it were playing on a surreal radio station. I was tuning the radio through my interdimensional radio, and land on this channel. This is not even a beginning, this is somewhere in the middle of what's happening. It is broadcasts me the following:\n\n" +
+    details.map(([label, value]) => `${label}: ${value}`).join("\n") +
+    "\Narrate it as it is happening. Don't talk about the radio. Describe only what's happening on the radio, follow the rule 'Show, do not tell'. if there is dialogue, include dialogue. If you need names, include names. Is if i am just listening to a radio.";
+
+  try {
+    const res = await fetch('http://127.0.0.1:5000/v1/chat/completions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        mode: "chat",
+        character: "Assistant",
+        messages: [{ role: "user", content: prompt }]
+      })
+    });
+
+    const json = await res.json();
+    const reply = json.choices?.[0]?.message?.content || "Something went weird in the wires.";
+    screen.textContent = reply;
+
+// Call API for TTS
+
+    const useTTS = document.getElementById("use-tts").checked;
+
+    if (useTTS) {
+      try {
+        const ttsRes = await fetch('http://127.0.0.1:9000/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: reply })
+        });
+
+        if (!ttsRes.ok) {
+          throw new Error("TTS API error");
+        }
+
+        const blob = await ttsRes.blob();
+        const url = URL.createObjectURL(blob);
+
+        const audio = document.getElementById('tts-player');
+        audio.src = url;
+        audio.play();
+      } catch (ttsErr) {
+        console.error("TTS playback failed:", ttsErr);
+      }
+    }
+
+
+
+      } catch (err) {
+        console.error("Failed to generate description:", err);
+        screen.textContent = "⚠️ Broadcast error from the AI dimension.";
+      }
+    }
+
+
+// Buttons
+// Toggle settings menu
+document.getElementById("settings-icon").addEventListener("click", () => {
+  const menu = document.getElementById("settings-menu");
+  menu.style.display = menu.style.display === "none" ? "flex" : "none";
+});
+
+
+document.addEventListener("click", function (event) {
+  const menu = document.getElementById("settings-menu");
+  const icon = document.getElementById("settings-icon");
+
+  // If menu is visible and the click is outside both the menu and the icon, close it
+  if (
+    menu.style.display === "flex" &&
+    !menu.contains(event.target) &&
+    !icon.contains(event.target)
+  ) {
+    menu.style.display = "none";
+  }
+});
+
+
+    document.getElementById("nextButton").addEventListener("click", generateDimension);
+    window.addEventListener("DOMContentLoaded", () => {
+    document.getElementById("sidebar").style.display = 'none';
+        loadData();
+
+      });
+
+  </script>
+</body>
+</html>
