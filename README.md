@@ -23,6 +23,7 @@ node server.js # start the server on port 3000
 ## Components
 - node js (but you can write your own Agent)
 - [OobaBooga API](https://github.com/oobabooga/text-generation-webui)
+    - Uses the "Assistant" character card, so you need to have it, and a model which is currently loaded in Ooba
 - TTS (I used Kokoro)
 
 ## How it works
