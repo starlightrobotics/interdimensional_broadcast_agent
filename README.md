@@ -16,6 +16,16 @@ npm install express@4 # install express v4 in the directory
 node server.js # start the server on port 3000
 ```
 
+And you need Ooba running in API mode, and load a model manually in the interface:
+
+```
+./start_linux --api
+```
+OR automatically
+```
+./start_linux --api --model Mistral-Small.gguf
+```
+
 - AI completion at http://127.0.0.1:5000/v1/chat/completions
 - I made Kokoro into a TTS API at http://127.0.0.1:9000/tts
 - Worldbuilding data.json in the same directory as index.html
