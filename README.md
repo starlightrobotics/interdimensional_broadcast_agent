@@ -9,9 +9,11 @@ Make sure your backend AI & TTS services are running locally:
 
 Starts as:
 ```
-npm init -y
-npm install express@4
-node server.js
+git clone 
+npm init -y https://github.com/starlightrobotics/interdimensional_broadcast_agent.git
+cd interdimensional_broadcast_agent
+npm install express@4 # install express v4 in the directory
+node server.js # start the server on port 3000
 ```
 
 - AI completion at http://127.0.0.1:5000/v1/chat/completions
