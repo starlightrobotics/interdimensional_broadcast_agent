@@ -1,5 +1,7 @@
 # Interdimensional Broadcast Radio Agent (Proof of Concept)
 
+*if you would like me to update the code, drop me a note in r/starlightrobotics or to u/starlightrobotics*
+
 A radio from across impossible dimension that has only one button - "Change channel".
 ![Image](1.jpeg)
 
