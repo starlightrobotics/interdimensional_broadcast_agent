@@ -64,6 +64,47 @@
     ul {
       padding-left: 1.5rem;
     }
+
+    #settings-icon {
+      position: fixed;
+      top: 10px;
+      right: 10px;
+      font-size: 100px;
+      color: #00ff00;
+      cursor: pointer;
+      z-index: 1000;
+      transition: transform 0.2s ease;
+    }
+
+    #settings-icon:hover {
+      transform: rotate(30deg);
+    }
+
+    #settings-menu {
+  position: fixed;
+  top: 50px;
+  right: 10px;
+  background: #111;
+  border: 1px solid #00ff00;
+  padding: 1rem;
+  border-radius: 5px;
+  display: none;
+  flex-direction: column;
+  color: #00ff00;
+  font-family: monospace;
+  font-size: 0.9rem;
+  z-index: 1001;
+}
+
+#settings-menu input {
+  background: black;
+  color: #00ff00;
+  border: 1px solid #00ff00;
+  padding: 0.25rem;
+  font-family: monospace;
+  width: 250px;
+}
+
   </style>
 </head>
 <body>
@@ -86,6 +127,27 @@
   </div>
 
   <audio id="tts-player" controls style="margin-top: 2rem;"></audio>
+
+  <div id="settings-icon" title="Settings">
+    &#9881;
+  </div>
+  <div id="settings-menu">
+    <label for="api-url">LLM API:</label>
+    <div style="display: flex; align-items: center; gap: 0.5rem;">
+      <input id="api-url" type="text" value="http://127.0.0.1:5000" />
+    </div>
+  
+    <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
+
+      <label for="use-tts">Use TTS</label>
+      <input type="checkbox" id="use-tts" checked />
+    </div>
+    
+  </div>
+  
+
+  
+
 
 
   <script>
@@ -111,7 +173,7 @@ document.getElementById("toggleModeButton").addEventListener("click", () => {
       try {
         const res = await fetch('data.json');
         data = await res.json();
-        generateDimension();
+        // generateDimension();
       } catch (err) {
         console.error("Failed to load data.json:", err);
         document.getElementById("tv-screen").textContent = "Failed to load dimension data.";
@@ -218,27 +280,31 @@ document.getElementById("toggleModeButton").addEventListener("click", () => {
 
 // Call API for TTS
 
-    try {
-      const ttsRes = await fetch('http://127.0.0.1:9000/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: reply })
-      });
+    const useTTS = document.getElementById("use-tts").checked;
 
-      if (!ttsRes.ok) {
-        throw new Error("TTS API error");
+    if (useTTS) {
+      try {
+        const ttsRes = await fetch('http://127.0.0.1:9000/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text: reply })
+        });
+
+        if (!ttsRes.ok) {
+          throw new Error("TTS API error");
+        }
+
+        const blob = await ttsRes.blob();
+        const url = URL.createObjectURL(blob);
+
+        const audio = document.getElementById('tts-player');
+        audio.src = url;
+        audio.play();
+      } catch (ttsErr) {
+        console.error("TTS playback failed:", ttsErr);
       }
-
-      const blob = await ttsRes.blob();
-      const url = URL.createObjectURL(blob);
-
-      const audio = document.getElementById('tts-player');
-      audio.src = url;
-      audio.play();
-
-    } catch (ttsErr) {
-      console.error("TTS playback failed:", ttsErr);
     }
+
 
 
       } catch (err) {
@@ -249,12 +315,34 @@ document.getElementById("toggleModeButton").addEventListener("click", () => {
 
 
 // Buttons
+// Toggle settings menu
+document.getElementById("settings-icon").addEventListener("click", () => {
+  const menu = document.getElementById("settings-menu");
+  menu.style.display = menu.style.display === "none" ? "flex" : "none";
+});
+
+
+document.addEventListener("click", function (event) {
+  const menu = document.getElementById("settings-menu");
+  const icon = document.getElementById("settings-icon");
+
+  // If menu is visible and the click is outside both the menu and the icon, close it
+  if (
+    menu.style.display === "flex" &&
+    !menu.contains(event.target) &&
+    !icon.contains(event.target)
+  ) {
+    menu.style.display = "none";
+  }
+});
+
 
     document.getElementById("nextButton").addEventListener("click", generateDimension);
     window.addEventListener("DOMContentLoaded", () => {
-      document.getElementById("sidebar").style.display = 'none';
-      loadData();
-    });
+    document.getElementById("sidebar").style.display = 'none';
+        loadData();
+
+      });
 
   </script>
 </body>
