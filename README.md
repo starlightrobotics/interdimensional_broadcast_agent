@@ -1,6 +1,7 @@
 # Interdimensional Broadcast Radio Agent (Proof of Concept)
 
 A radio from across impossible dimension that has only one button - "Change channel".
+![Image](1.jpeg)
 
 Make sure your backend AI & TTS services are running locally:
 
