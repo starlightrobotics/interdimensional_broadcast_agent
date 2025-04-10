@@ -7,7 +7,7 @@ A radio from across impossible dimension that has only one button - "Change chan
 
 Make sure your backend AI & TTS services are running locally:
 
-Starts as:
+Installation and start are:
 ```
 git clone 
 npm init -y https://github.com/starlightrobotics/interdimensional_broadcast_agent.git
