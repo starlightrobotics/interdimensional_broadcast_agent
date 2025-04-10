@@ -16,6 +16,11 @@ node server.js
 - I made Kokoro into a TTS API at http://127.0.0.1:9000/tts
 - Worldbuilding data.json in the same directory as index.html
 
+## Components
+- node js (but you can write your own Agent)
+- [OobaBooga API](https://github.com/oobabooga/text-generation-webui)
+- TTS (I used Kokoro)
+
 ## How it works
 - It has a JSON file of pre-generated impossible universes
 - pipes it to a local OobaBooga API LLM and a character card "Assistant"
