@@ -1,4 +1,4 @@
-# Starlight Interdimensional Broadcast Radio Agent (Proof of Concept)
+# Starlight Interdimensional Broadcast Radio Agent v0.0.2
 
 *if you would like me to update the code, drop me a note in r/starlightrobotics or to u/starlightrobotics*
 
