@@ -135,6 +135,8 @@
     <label for="api-url">LLM API:</label>
     <div style="display: flex; align-items: center; gap: 0.5rem;">
       <input id="api-url" type="text" value="http://127.0.0.1:5000" />
+      <div id="api-status-light" style="width: 10px; height: 10px; border-radius: 50%; background: red; margin-top: 0.5rem;"></div>
+
     </div>
   
     <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
@@ -154,20 +156,26 @@
     let data = null;
     let debugMode = false;
 
-document.getElementById("toggleModeButton").addEventListener("click", () => {
-  debugMode = !debugMode;
 
-  const sidebar = document.getElementById("sidebar");
-  const button = document.getElementById("toggleModeButton");
+    function getApiBaseUrl() {
+      return document.getElementById("api-url").value.trim();
+    }
 
-  if (debugMode) {
-    sidebar.style.display = 'block';
-    button.textContent = 'Debug';
-  } else {
-    sidebar.style.display = 'none';
-    button.textContent = 'Radio';
-  }
-});
+
+    document.getElementById("toggleModeButton").addEventListener("click", () => {
+      debugMode = !debugMode;
+
+      const sidebar = document.getElementById("sidebar");
+      const button = document.getElementById("toggleModeButton");
+
+      if (debugMode) {
+        sidebar.style.display = 'block';
+        button.textContent = 'Debug';
+      } else {
+        sidebar.style.display = 'none';
+        button.textContent = 'Radio';
+      }
+    });
 
     async function loadData() {
       try {
@@ -193,7 +201,7 @@ document.getElementById("toggleModeButton").addEventListener("click", () => {
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          const res = await fetch('http://127.0.0.1:5000/v1/chat/completions', {
+          const res = await fetch(`${getApiBaseUrl()}/v1/chat/completions`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
@@ -264,7 +272,7 @@ document.getElementById("toggleModeButton").addEventListener("click", () => {
     "\Narrate it as it is happening. Don't talk about the radio. Describe only what's happening on the radio, follow the rule 'Show, do not tell'. if there is dialogue, include dialogue. If you need names, include names. Is if i am just listening to a radio.";
 
   try {
-    const res = await fetch('http://127.0.0.1:5000/v1/chat/completions', {
+    const res = await fetch(`${getApiBaseUrl()}/v1/chat/completions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -314,6 +322,36 @@ document.getElementById("toggleModeButton").addEventListener("click", () => {
     }
 
 
+
+
+
+    async function checkApiStatus() {
+  const apiUrl = document.getElementById("api-url").value;
+  const indicator = document.getElementById("api-status-light");
+
+  try {
+    const res = await fetch(`${apiUrl}/v1/internal/model/list`, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json"
+      }
+    });
+
+    if (res.ok) {
+      indicator.style.background = "limegreen";
+    } else {
+      console.warn("LLM API responded but not OK");
+      indicator.style.background = "red";
+    }
+
+  } catch (err) {
+    console.error("LLM API is offline or unreachable:", err);
+    indicator.style.background = "red";
+  }
+}
+
+
+
 // Buttons
 // Toggle settings menu
 document.getElementById("settings-icon").addEventListener("click", () => {
@@ -339,10 +377,27 @@ document.addEventListener("click", function (event) {
 
     document.getElementById("nextButton").addEventListener("click", generateDimension);
     window.addEventListener("DOMContentLoaded", () => {
-    document.getElementById("sidebar").style.display = 'none';
-        loadData();
+      document.getElementById("sidebar").style.display = 'none';
+      loadData();
 
-      });
+      // health check
+      checkApiStatus();
+      setInterval(checkApiStatus, 2000);
+    });
+
+
+      document.addEventListener("keydown", (e) => {
+  // Avoid triggering when focused in input or textarea
+  const tag = document.activeElement.tagName.toLowerCase();
+  if (tag === "input" || tag === "textarea") return;
+
+  if (e.code === "Space" || e.code === "Enter") {
+    e.preventDefault(); // prevent page scroll or form submission
+    generateDimension();
+  }
+});
+
+
 
   </script>
 </body>
