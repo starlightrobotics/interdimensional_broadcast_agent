@@ -138,6 +138,15 @@
       <div id="api-status-light" style="width: 10px; height: 10px; border-radius: 50%; background: red; margin-top: 0.5rem;"></div>
 
     </div>
+
+    <div style="margin-top: 0.5rem;">
+      <label for="api-type">API Type:</label>
+      <select id="api-type">
+        <option value="oobabooga">Oobabooga</option>
+        <option value="ollama">Ollama</option>
+      </select>
+    </div>
+    
   
     <div style="display: flex; align-items: center; gap: 0.5rem; margin-top: 0.5rem;">
 
@@ -196,28 +205,67 @@
       return array[Math.floor(Math.random() * array.length)];
     }
 
+    function getApiType() {
+      return document.getElementById("api-type").value;
+    }
+
+
+
+
     async function generateNewEntryFromCategory(categoryName, valuesArray, maxRetries = 3) {
       const prompt = `We are planning an interdimensional radio station. Here are our current examples: ${valuesArray.join(', ')}. Make your own random ${categoryName.toLowerCase()}. Respond just with one line.`;
 
       for (let attempt = 1; attempt <= maxRetries; attempt++) {
         try {
-          const res = await fetch(`${getApiBaseUrl()}/v1/chat/completions`, {
+          let res;
+          const apiType = getApiType();
+          const baseUrl = getApiBaseUrl();
+
+          if (apiType === "ollama") {
+            res = await fetch(`${baseUrl}/api/generate`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
-              mode: "chat",
-              character: "Assistant",
-              messages: [{ role: "user", content: prompt }]
+              model: "deepseek-r1:14b",
+              prompt: prompt,
+              stream: false
             })
           });
-
-          const json = await res.json();
-          const content = json.choices?.[0]?.message?.content?.trim();
-
-          if (content && content !== "[No response]") {
-            return content;
+          } else {
+            res = await fetch(`${baseUrl}/v1/chat/completions`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                mode: "chat",
+                character: "Assistant",
+                messages: [{ role: "user", content: prompt }]
+              })
+            });
           }
 
+
+          const json = await res.json();
+          let reply = "";
+
+          if (apiType === "ollama") {
+            console.log("Ollama raw response:", json);
+            let fullResponse = typeof json.response === "string" ? json.response.trim() : "";
+            // Remove the <think> block if present.
+            const endThink = fullResponse.indexOf("</think>");
+            reply = endThink !== -1
+              ? fullResponse.substring(endThink + "</think>".length).trim()
+              : fullResponse;
+          } else {
+            console.log("Oobabooga raw response:", json);
+            reply = json.choices?.[0]?.message?.content?.trim() || "[No response]";
+          }
+          
+          // If we have a valid response, return it immediately.
+          if (reply && reply !== "[No response]") {
+            return reply;
+          } else {
+            console.warn(`Attempt ${attempt}: Empty or invalid response for "${categoryName}". Retrying...`);
+          }
           console.warn(`Attempt ${attempt}: Empty or invalid response for "${categoryName}". Retrying...`);
 
         } catch (err) {
@@ -233,60 +281,109 @@
 
 
     async function generateDimension() {
-  if (!data) return;
+      if (!data) return;
 
-  const outputList = document.getElementById("output");
-  const screen = document.getElementById("tv-screen");
-  outputList.innerHTML = '';
-  screen.textContent = "Tuning in to a strange dimension...";
+      const outputList = document.getElementById("output");
+      const screen = document.getElementById("tv-screen");
+      outputList.innerHTML = '';
+      screen.textContent = "Tuning in to a strange dimension...";
+      const categories = [
+          ["Core Twist", data.coreTwists],
+          ["World State", data.worldStates],
+          ["Dominant Species", data.species],
+          ["Culture", data.culture],
+          ["Technology Level", data.techLevel],
+          ["Politics", data.politics],
+          ["Fashion", data.fashion],
+          ["Laws of Nature", data.lawsOfNature],
+          ["Snapshot", data.snapshot],
+          ["Tone", data.tone]
+        ];
 
-  const categories = [
-    ["Core Twist", data.coreTwists],
-    ["World State", data.worldStates],
-    ["Dominant Species", data.species],
-    ["Culture", data.culture],
-    ["Technology Level", data.techLevel],
-    ["Politics", data.politics],
-    ["Fashion", data.fashion],
-    ["Laws of Nature", data.lawsOfNature],
-    ["Snapshot", data.snapshot],
-    ["Tone", data.tone]
-  ];
+        const details = [];
 
-  const details = [];
+        // Fetch each entry via the API and populate details.
+        for (const [label, array] of categories) {
+          const value = await generateNewEntryFromCategory(label, array);
+          details.push([label, value]);
 
-  // Sequentially fetch each entry via API and update list
-  for (const [label, array] of categories) {
-    const value = await generateNewEntryFromCategory(label, array);
-    details.push([label, value]);
+          const li = document.createElement('li');
+          li.textContent = `${label}: ${value}`;
+          outputList.appendChild(li);
+        }
 
-    const li = document.createElement('li');
-    li.textContent = `${label}: ${value}`;
-    outputList.appendChild(li);
-  }
+      // Create the prompt for the summary once all entries are ready
+      const prompt =
+        "Describe the following interdimensional radio broadcast as if it were playing on a surreal radio station. " +
+        "I was tuning the radio through my interdimensional radio, and land on this channel. " +
+        "This is not even a beginning, this is somewhere in the middle of what's happening. " +
+        "It broadcasts to me the following:\n\n" +
+        details.map(([label, value]) => `${label}: ${value}`).join("\n") +
+        "\nNarrate it as it is happening. Don't talk about the radio. " +
+        "Describe only what's happening on the radio, follow the rule 'Show, do not tell'. " +
+        "If there is dialogue, include dialogue. If you need names, include names. " +
+        "As if I am just listening to a radio.";
 
-  // Create the prompt for the summary once all entries are ready
-  const prompt =
-    "Describe the following interdimensional radio broadcast as if it were playing on a surreal radio station. I was tuning the radio through my interdimensional radio, and land on this channel. This is not even a beginning, this is somewhere in the middle of what's happening. It is broadcasts me the following:\n\n" +
-    details.map(([label, value]) => `${label}: ${value}`).join("\n") +
-    "\Narrate it as it is happening. Don't talk about the radio. Describe only what's happening on the radio, follow the rule 'Show, do not tell'. if there is dialogue, include dialogue. If you need names, include names. Is if i am just listening to a radio.";
 
-  try {
-    const res = await fetch(`${getApiBaseUrl()}/v1/chat/completions`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        mode: "chat",
-        character: "Assistant",
-        messages: [{ role: "user", content: prompt }]
-      })
-    });
+      try {
+        let res;
+        const apiType = getApiType();
+        const baseUrl = getApiBaseUrl();
 
-    const json = await res.json();
-    const reply = json.choices?.[0]?.message?.content || "Something went weird in the wires.";
-    screen.textContent = reply;
+        if (apiType === "ollama") {
+          res = await fetch(`${baseUrl}/api/generate`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              model: "deepseek-r1:14b",
+              prompt: prompt,
+              stream: false
+            })
+          });
+        } else {
+          res = await fetch(`${baseUrl}/v1/chat/completions`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              mode: "chat",
+              character: "Assistant",
+              messages: [{ role: "user", content: prompt }]
+            })
+          });
+        }
 
-// Call API for TTS
+        if (!res.ok) {
+          throw new Error(`HTTP error! Status: ${res.status}`);
+        }
+        
+        const json = await res.json();
+        let reply = "";
+
+        if (apiType === "ollama") {
+          console.log("Ollama raw response:", json);
+          let fullResponse = typeof json.response === "string" ? json.response.trim() : "";
+          // Remove the <think> block if present.
+          const endThink = fullResponse.indexOf("</think>");
+          reply = endThink !== -1
+            ? fullResponse.substring(endThink + "</think>".length).trim()
+            : fullResponse;
+        } else {
+          console.log("Oobabooga raw response:", json);
+          reply = json.choices?.[0]?.message?.content?.trim() || "[No response]";
+        }
+        
+        // Log the final reply for debugging
+        console.log("Final broadcast reply:", reply);
+        
+        // Only update the screen if the reply is valid.
+        if (reply && reply !== "[No response]") {
+          screen.textContent = reply;
+        } else {
+          console.warn("Final broadcast reply is empty or invalid.");
+          screen.textContent = "⚠️ Broadcast error from the AI dimension.";
+        }
+
+    // Call API for TTS
 
     const useTTS = document.getElementById("use-tts").checked;
 
